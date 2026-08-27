@@ -33,38 +33,44 @@ static void crt_cleanup(void);
 static void sysvid_buildStretch(void);
 void sysvid_restorePalette(void);
 
+#ifdef _WIN32
+#define CRTAPIENTRY __stdcall
+#else
+#define CRTAPIENTRY
+#endif
+
 typedef int GLint_t;
 typedef int GLsizei_t;
 typedef float GLfloat_t;
 
-typedef void (*pfn_glEnable_t)(unsigned);
-typedef void (*pfn_glDisable_t)(unsigned);
-typedef void (*pfn_glGenTextures_t)(int, unsigned *);
-typedef void (*pfn_glBindTexture_t)(unsigned, unsigned);
-typedef void (*pfn_glTexImage2D_t)(unsigned, int, int, int, int, int, unsigned, unsigned, const void *);
-typedef void (*pfn_glTexSubImage2D_t)(unsigned, int, int, int, int, int, unsigned, unsigned, const void *);
-typedef void (*pfn_glTexParameteri_t)(unsigned, unsigned, int);
-typedef void (*pfn_glViewport_t)(int, int, int, int);
-typedef void (*pfn_glClear_t)(unsigned);
-typedef void (*pfn_glMatrixMode_t)(unsigned);
-typedef void (*pfn_glLoadIdentity_t)(void);
-typedef void (*pfn_glBegin_t)(unsigned);
-typedef void (*pfn_glEnd_t)(void);
-typedef void (*pfn_glTexCoord2f_t)(float, float);
-typedef void (*pfn_glVertex2f_t)(float, float);
-typedef const char *(*pfn_glGetString_t)(unsigned);
-typedef unsigned (*pfn_glCreateShader_t)(unsigned);
-typedef void (*pfn_glDeleteShader_t)(unsigned);
-typedef void (*pfn_glShaderSource_t)(unsigned, int, const char **, const int *);
-typedef void (*pfn_glCompileShader_t)(unsigned);
-typedef void (*pfn_glGetShaderiv_t)(unsigned, unsigned, int *);
-typedef void (*pfn_glGetShaderInfoLog_t)(unsigned, int, int *, char *);
-typedef unsigned (*pfn_glCreateProgram_t)(void);
-typedef void (*pfn_glDeleteProgram_t)(unsigned);
-typedef void (*pfn_glAttachShader_t)(unsigned, unsigned);
-typedef void (*pfn_glLinkProgram_t)(unsigned);
-typedef void (*pfn_glGetProgramiv_t)(unsigned, unsigned, int *);
-typedef void (*pfn_glUseProgram_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glEnable_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glDisable_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glGenTextures_t)(int, unsigned *);
+typedef void (CRTAPIENTRY *pfn_glBindTexture_t)(unsigned, unsigned);
+typedef void (CRTAPIENTRY *pfn_glTexImage2D_t)(unsigned, int, int, int, int, int, unsigned, unsigned, const void *);
+typedef void (CRTAPIENTRY *pfn_glTexSubImage2D_t)(unsigned, int, int, int, int, int, unsigned, unsigned, const void *);
+typedef void (CRTAPIENTRY *pfn_glTexParameteri_t)(unsigned, unsigned, int);
+typedef void (CRTAPIENTRY *pfn_glViewport_t)(int, int, int, int);
+typedef void (CRTAPIENTRY *pfn_glClear_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glMatrixMode_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glLoadIdentity_t)(void);
+typedef void (CRTAPIENTRY *pfn_glBegin_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glEnd_t)(void);
+typedef void (CRTAPIENTRY *pfn_glTexCoord2f_t)(float, float);
+typedef void (CRTAPIENTRY *pfn_glVertex2f_t)(float, float);
+typedef const char *(CRTAPIENTRY *pfn_glGetString_t)(unsigned);
+typedef unsigned (CRTAPIENTRY *pfn_glCreateShader_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glDeleteShader_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glShaderSource_t)(unsigned, int, const char **, const int *);
+typedef void (CRTAPIENTRY *pfn_glCompileShader_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glGetShaderiv_t)(unsigned, unsigned, int *);
+typedef void (CRTAPIENTRY *pfn_glGetShaderInfoLog_t)(unsigned, int, int *, char *);
+typedef unsigned (CRTAPIENTRY *pfn_glCreateProgram_t)(void);
+typedef void (CRTAPIENTRY *pfn_glDeleteProgram_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glAttachShader_t)(unsigned, unsigned);
+typedef void (CRTAPIENTRY *pfn_glLinkProgram_t)(unsigned);
+typedef void (CRTAPIENTRY *pfn_glGetProgramiv_t)(unsigned, unsigned, int *);
+typedef void (CRTAPIENTRY *pfn_glUseProgram_t)(unsigned);
 
 static pfn_glEnable_t glenable;
 static pfn_glDisable_t gldisable;
@@ -203,9 +209,10 @@ crt_printlog(unsigned sh)
 static unsigned
 crt_compile(unsigned type, const char *src)
 {
-  unsigned sh = glcreateshader(type);
+  unsigned sh;
   int ok = 0;
 
+  sh = glcreateshader(type);
   glshadersource(sh, 1, &src, NULL);
   glcompileshader(sh);
   glgetshaderiv(sh, GLT_COMPILE_STATUS, &ok);
@@ -321,8 +328,9 @@ crt_start(void)
                  GLT_RGBA, GLT_UNSIGNED_BYTE, black);
   }
 
-  if (!crt_buildprogram())
+  if (!crt_buildprogram()) {
     goto fail;
+  }
 
   crt_rgba = malloc(SYSVID_WIDTH * SYSVID_HEIGHT * 4);
   if (!crt_rgba)

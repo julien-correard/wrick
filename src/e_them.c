@@ -581,8 +581,13 @@ e_them_t3_action2(U8 e)
       /* rotate sprseq */
       if (ent_sprseq[ent_ents[e].sprbase + ent_ents[e].sproffs] != 0xff)
 	ent_ents[e].sproffs++;
-      if (ent_sprseq[ent_ents[e].sprbase + ent_ents[e].sproffs] == 0xff)
+      if (ent_sprseq[ent_ents[e].sprbase + ent_ents[e].sproffs] == 0xff) {
+	if (ent_ents[e].flags & ENT_FLG_ONCE) {
+	  ent_ents[e].n = 0;
+	  return;
+	}
 	ent_ents[e].sproffs = 1;
+      }
 
       if (ent_ents[e].step_count < ent_mvstep[ent_ents[e].step_no].count) {
 	/*
@@ -719,6 +724,11 @@ e_them_t3_action(U8 e)
   if ((ent_ents[e].n & ENT_LETHAL) &&
       !E_RICK_STTST(E_RICK_STZOMBIE) && e_rick_boxtest(e)) {  /* CALL 1130 */
     e_rick_gozombie();
+  }
+
+  /* if entity deactivated and was ENT_FLG_ONCE, prevent respawn */
+  if (!ent_ents[e].n && (ent_ents[e].flags & ENT_FLG_ONCE)) {
+    map_marks[ent_ents[e].mark].ent |= MAP_MARK_NACT;
   }
 }
 

@@ -1,0 +1,66 @@
+#
+# xrick/Makefile.win — Windows build (cross-compiled from Linux)
+#
+# Requires: gcc-mingw-w64-i686
+# Uses the SDL 1.2.15 MinGW development package (SDLDIR below).
+# Produces build/xrick.exe (32 bits) + SDL.dll + data.zip.
+#
+
+BUILD   := build/win
+OBJDIR  := $(BUILD)/obj
+SRCDIR  := src
+
+SDLDIR  := /tmp/opencode/SDL-1.2.15
+ZDIR    := /tmp/opencode/zlib-1.3.1
+
+CC      := i686-w64-mingw32-gcc
+WINDRES := i686-w64-mingw32-windres
+
+CFLAGS  := -O2 -Wall -Iinclude -I$(SDLDIR)/include -I$(SDLDIR)/include/SDL -I$(ZDIR) -MMD -MP -Dmain=SDL_main
+ifdef DBG
+CFLAGS += -DDEBUG
+endif
+LDFLAGS := -L$(SDLDIR)/lib -L$(ZDIR) -lSDL -lz -static-libgcc
+ifndef CONSOLE
+LDFLAGS += -mwindows
+endif
+
+SOURCES := $(wildcard $(SRCDIR)/*.c)
+OBJECTS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
+DEPS    := $(OBJECTS:.o=.d)
+
+.PHONY: all clean run deliver
+
+all: $(BUILD)/xrick.exe $(BUILD)/data.zip $(BUILD)/SDL.dll
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR)/sysvid.o: $(SRCDIR)/sysvid.c $(SRCDIR)/sysvid_crt.e | $(OBJDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/xrick.exe: $(OBJECTS) | $(BUILD)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(BUILD)/data.zip: data.zip | $(BUILD)
+	cp $< $@
+
+$(BUILD)/SDL.dll: | $(BUILD)
+	cp $(SDLDIR)/bin/SDL.dll $@
+
+run: all
+	cd $(BUILD) && wine xrick.exe
+
+deliver: all
+	@echo "Livrable Windows: $(BUILD)/ (xrick.exe, SDL.dll, data.zip)"
+
+clean:
+	rm -rf $(BUILD)
+
+-include $(DEPS)

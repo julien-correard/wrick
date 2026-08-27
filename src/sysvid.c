@@ -260,17 +260,31 @@ sysvid_init(void)
     szoom = zoom;
   }
 
-  if (videoFlags & SDL_FULLSCREEN) {
+  if (videoFlags & SDL_FULLSCREEN)
     sysvid_buildStretch();
-    screen = initScreen(fsw, fsh, 8, videoFlags);
+
+  /*
+   * CRT first: single SetVideoMode (GL). Avoids the SW->GL switch
+   * which breaks the window under Wine/Windows. Software fallback.
+   */
+  if (!sysarg_args_nocrt && crt_start()) {
+    crt_on = TRUE;
+    sys_printf("xrick/video: CRT actif (F12)\n");
   }
   else {
-    screen = initScreen(SYSVID_WIDTH * zoom,
-			SYSVID_HEIGHT * zoom,
-			8, videoFlags);
+    if (videoFlags & SDL_FULLSCREEN) {
+      screen = initScreen(fsw, fsh, 8, videoFlags);
+    }
+    else {
+      screen = initScreen(SYSVID_WIDTH * zoom,
+			  SYSVID_HEIGHT * zoom,
+			  8, videoFlags);
+    }
+    if (!screen)
+      sys_panic("xrick/video: could not set video mode\n");
+    if (!sysarg_args_nocrt)
+      sys_printf("xrick/video: CRT indisponible, mode logiciel\n");
   }
-  if (!screen)
-    sys_panic("xrick/video: could not set video mode\n");
 
   /*
    * create v_ frame buffer
@@ -278,9 +292,6 @@ sysvid_init(void)
   sysvid_fb = malloc(SYSVID_WIDTH * SYSVID_HEIGHT);
   if (!sysvid_fb)
     sys_panic("xrick/video: sysvid_fb malloc failed\n");
-
-  /* CRT shader on by default (F12 to toggle) */
-  sysvid_toggleCrt();
 
   IFDEBUG_VIDEO(printf("xrick/video: ready\n"););
 }
