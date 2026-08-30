@@ -566,22 +566,39 @@ e_them_t3_action2(U8 e)
 #define sproffs c1
 #define step_count c2
   U8 i;
+  U8 base;
   S16 x, y;
 
   while (1) {
 
-    /* calc new sprite */
-    i = ent_sprseq[ent_ents[e].sprbase + ent_ents[e].sproffs];
+    /* rolling barrels (sprbase == 0x92) pick a forward or reversed sprseq
+     * depending on the current horizontal move direction, so the rotation
+     * reverses when the entity rolls back the other way.
+     * forward (left) base 0x92: 106,150,107,151
+     * reversed (right) base 0x9f: 106,151,107,150 */
+    if (ent_ents[e].sprbase == 0x92)
+      base = (ent_mvstep[ent_ents[e].step_no].dx < 0) ? 0x92 : 0x9f;
+    else
+      base = ent_ents[e].sprbase;
+
+    /* finale explosion markers (entities 67/68): their sleeping base
+     * frame is the 0xff terminator (sprseq[0x80]) so they would draw a
+     * garbage/orange sprite while waiting. Force sprite 0 while sleeping,
+     * then let the normal sprseq rotation play the explosion sprites
+     * (0xa8-0xac via sprseq[0x81..0x85]) once woken up. */
+    i = ent_sprseq[base + ent_ents[e].sproffs];
     if (i == 0xff)
-      i = ent_sprseq[ent_ents[e].sprbase];
+      i = ent_sprseq[base];
     ent_ents[e].sprite = i;
+    if (ent_ents[e].sprbase == 0x80 && ent_ents[e].sproffs == 0)
+      ent_ents[e].sprite = 0;  /* invisible while sleeping */
 
     if (ent_ents[e].sproffs != 0) {  /* awake */
 
       /* rotate sprseq */
-      if (ent_sprseq[ent_ents[e].sprbase + ent_ents[e].sproffs] != 0xff)
+      if (ent_sprseq[base + ent_ents[e].sproffs] != 0xff)
 	ent_ents[e].sproffs++;
-      if (ent_sprseq[ent_ents[e].sprbase + ent_ents[e].sproffs] == 0xff)
+      if (ent_sprseq[base + ent_ents[e].sproffs] == 0xff)
 	ent_ents[e].sproffs = 1;
 
       if (ent_ents[e].step_count < ent_mvstep[ent_ents[e].step_no].count) {
