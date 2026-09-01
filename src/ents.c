@@ -218,6 +218,13 @@ ent_actvis(U8 frow, U8 lrow)
     ent_ents[e].flags = map_marks[m].flags;
     ent_ents[e].n = map_marks[m].ent;
 
+    /* the four shooting traps (0x39/0x3f bullet/missile and their slow-fire
+     * variants 0x4b/0x4c) are lethal by default, both while awake (LETHALI)
+     * and while restarting/looping (LETHALR) */
+    if (ent_ents[e].n == 0x39 || ent_ents[e].n == 0x3f ||
+	ent_ents[e].n == 0x4b || ent_ents[e].n == 0x4c)
+      ent_ents[e].flags |= (ENT_FLG_LETHALI | ENT_FLG_LETHALR);
+
     /*
      * if entity is to be already running (i.e. not asleep and waiting
      * for some trigger to move), then use LETHALR i.e. restart flag, right
@@ -265,6 +272,20 @@ ent_actvis(U8 frow, U8 lrow)
 
     ent_ents[e].trig_x = map_marks[m].lt & 0xf8;
     ent_ents[e].latency = (map_marks[m].lt & 0x07) << 5;  /* <<5 eq *32 */
+
+    if (ent_ents[e].n == 0x4b || ent_ents[e].n == 0x4c)
+      ent_ents[e].latency = 0;  /* slow-fire traps: latency is the post-shot reload only */
+
+    /* Pre-consume the wake-up latency of enemies (e_them types) that are
+     * spawned outside the visible column (hidden top/bottom bands). Such an
+     * enemy is meant to have already started moving by the time it scrolls
+     * into view; otherwise it stands frozen for its whole latency once we
+     * can see it (e.g. the row-48 climbers on submap 12). */
+    if (map_marks[m].ent < 0x10) {
+      int rel = (int)map_marks[m].row - (int)map_frow;
+      if (rel < MAP_ROW_SCRTOP || rel > MAP_ROW_SCRBOT)
+	ent_ents[e].latency = 0;
+    }
 
     ent_ents[e].trig_y = 3 + 8 * ((map_marks[m].row & 0xf8) - map_frow +
 				  (map_marks[m].lt & 0x07));
@@ -488,12 +509,18 @@ ent_snap(void)
  * a16: interpolation factor, 0=use snapshot position, 65536=current
  * position (fixed point 16.16).
  *
+ * off: vertical offset (in pixels) to apply to entities that cannot be
+ * interpolated (newly spawned or teleported during a scroll). During a
+ * scroll the background is drawn shifted by this same offset
+ * (see draw_mapCompose()), so such entities must follow it too, or they
+ * appear vertically misaligned (e.g. towards the top on an upward scroll).
+ *
  * NOTE this is a pure rendering function: it does not touch prev_*,
  * does not erase sprites and does not build dirty rectangles. The
  * whole background is supposed to have been redrawn already.
  */
 void
-ent_draw_interp(U32 a16)
+ent_draw_interp(U32 a16, S16 off)
 {
   U8 i;
   S16 xi, yi, dx, dy;
@@ -520,7 +547,7 @@ ent_draw_interp(U32 a16)
      * has not teleported (same thresholds as the dirty-rect code) */
     if (!isnap_n[i] || dx > 0x20 || dx < -0x20 || dy > 0x16 || dy < -0x16) {
       xi = ent_ents[i].x;
-      yi = ent_ents[i].y;
+      yi = ent_ents[i].y + off;
     }
     else {
       xi = isnap_x[i] + (S16)(((S32)dx * (S32)a16 + 0x8000) >> 16);

@@ -239,7 +239,7 @@ game_render(U32 a16, S16 off)
 {
   draw_mapBufFill();     /* refresh offscreen map rows (incl. hidden ones) */
   draw_mapCompose(off);  /* background, vertically shifted while scrolling */
-  ent_draw_interp(a16);  /* entities at interpolated positions */
+  ent_draw_interp(a16, off);  /* entities at interpolated positions */
   sysvid_update(&draw_SCREENRECT);
   draw_STATUSRECT.next = NULL;
 }
@@ -279,7 +279,7 @@ game_run(void)
 		/* run due logic ticks */
 		while (acc >= game_period && game_state != EXIT) {
 			acc -= game_period;
-			ent_snap();          /* save pre-tick state for interpolation */
+ent_snap();          /* save pre-tick state for interpolation */
 			st_before = game_state;
 			game_drewpf = FALSE;
 			frame();

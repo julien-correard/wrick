@@ -21,6 +21,7 @@
 #include "e_bomb.h"
 #include "control.h"
 #include "maps.h"
+#include "tiles.h"
 #include "util.h"
 
 /*
@@ -71,6 +72,57 @@ e_rick_boxtest(U8 e)
 		return FALSE;
 	else
 		return TRUE;
+}
+
+
+
+
+/*
+ * Pixel-perfect lethal environment check.
+ *
+ * The env flags are per-tile, but lethal tiles can be partially transparent
+ * (color 0 pixels, e.g. spikes/edges). A lethal tile must only kill rick
+ * when his hitbox actually overlaps a colored (color > 0) pixel of that
+ * tile; overlapping only transparent (color 0) pixels must not kill.
+ *
+ * x,y: prospective rick position (top-left)
+ * crawl: is rick crawling?
+ * ret: TRUE/rick overlaps a colored pixel of a lethal tile, FALSE/not.
+ */
+U8
+e_rick_lethalpix(S16 x, S16 y, U8 crawl)
+{
+	S16 x0, x1, y0, y1;
+	S16 tx, ty, px, py;
+	U8 tile;
+	U32 row;
+
+	/* rick hitbox (matches e_rick_boxtest) */
+	x0 = x + 0x05;
+	x1 = x + 0x11;
+	y0 = y + (crawl ? 0x08 : 0x00);
+	y1 = y + 0x14;
+
+	for (ty = y0 >> 3; ty <= (y1 >> 3); ty++) {
+		if (ty < 0 || ty >= 0x2C) continue;
+		for (tx = x0 >> 3; tx <= (x1 >> 3); tx++) {
+			if (tx < 0 || tx >= 0x20) continue;
+			tile = map_map[ty][tx];
+			if (!(map_eflg[tile] & MAP_EFLG_LETHAL)) continue;
+			for (py = 0; py < 8; py++) {
+				if ((ty << 3) + py < y0 || (ty << 3) + py > y1) continue;
+				row = tiles_data[map_tilesBank][tile][py];
+				for (px = 0; px < 8; px++) {
+					if ((tx << 3) + px < x0 || (tx << 3) + px > x1) continue;
+					/* ST encoding: rightmost pixel = low nibble (see draw_tile) */
+					if ((row >> (4 * (7 - px))) & 0x0F)
+						return TRUE;
+				}
+			}
+		}
+	}
+
+	return FALSE;
 }
 
 
@@ -178,7 +230,8 @@ e_rick_action2(void)
 	*/
 	E_RICK_STSET(E_RICK_STJUMP);
 	/* killed? */
-	if (env1 & MAP_EFLG_LETHAL) {
+	if ((env1 & MAP_EFLG_LETHAL) &&
+	    e_rick_lethalpix(E_RICK_ENT.x, y, E_RICK_STTST(E_RICK_STCRAWL))) {
 		e_rick_gozombie();
 		return;
 	}
@@ -232,7 +285,9 @@ e_rick_action2(void)
 	/* save x-position if it is possible to move */
 	if (!(env1 & (MAP_EFLG_SOLID|MAP_EFLG_SPAD|MAP_EFLG_WAYUP))) {
 		E_RICK_ENT.x = x;
-		if (env1 & MAP_EFLG_LETHAL) e_rick_gozombie();
+		if ((env1 & MAP_EFLG_LETHAL) &&
+		    e_rick_lethalpix(E_RICK_ENT.x, E_RICK_ENT.y, E_RICK_STTST(E_RICK_STCRAWL)))
+			e_rick_gozombie();
 	}
 
 	/* end */
@@ -387,7 +442,8 @@ e_rick_action2(void)
 					(env1 & MAP_EFLG_WAYUP)) {
 				/* ok to move, save */
 				E_RICK_ENT.y = y;
-				if (env1 & MAP_EFLG_LETHAL) {
+				if ((env1 & MAP_EFLG_LETHAL) &&
+				    e_rick_lethalpix(E_RICK_ENT.x, E_RICK_ENT.y, E_RICK_STTST(E_RICK_STCRAWL))) {
 					e_rick_gozombie();
 					return;
 				}
@@ -426,7 +482,8 @@ e_rick_action2(void)
     u_envtest(x, E_RICK_ENT.y, E_RICK_STTST(E_RICK_STCRAWL), &env0, &env1);
     if (env1 & (MAP_EFLG_SOLID|MAP_EFLG_SPAD)) return;
     E_RICK_ENT.x = x;
-    if (env1 & MAP_EFLG_LETHAL) {
+    if ((env1 & MAP_EFLG_LETHAL) &&
+        e_rick_lethalpix(E_RICK_ENT.x, E_RICK_ENT.y, E_RICK_STTST(E_RICK_STCRAWL))) {
       e_rick_gozombie();
       return;
     }

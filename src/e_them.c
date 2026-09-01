@@ -333,15 +333,20 @@ e_them_t2_action2(U8 e)
   /*
    * vars required by the Black Magic (tm) performance at the
    * end of this function.
+   *
+   * bx, cx (and their byte aliases) are per-invocation scratch: each
+   * entity computes its own value from the *shared* rng seed below.
+   * Making them non-static is essential, otherwise every climber would
+   * share/corrupt the same state when several are active on a submap.
    */
-  static U16 bx;
-  static U8 *bl = (U8 *)&bx;
-  static U8 *bh = (U8 *)&bx + 1;
-  static U16 cx;
-  static U8 *cl = (U8 *)&cx;
-  static U8 *ch = (U8 *)&cx + 1;
-  static U16 *sl = (U16 *)&e_them_rndseed;
-  static U16 *sh = (U16 *)&e_them_rndseed + 2;
+  U16 bx;
+  U8 *bl = (U8 *)&bx;
+  U8 *bh = (U8 *)&bx + 1;
+  U16 cx;
+  U8 *cl = (U8 *)&cx;
+  U8 *ch = (U8 *)&cx + 1;
+  U16 *sl = (U16 *)&e_them_rndseed;
+  U16 *sh = (U16 *)&e_them_rndseed + 2;
 
   /*sys_printf("e_them_t2 ------------------------------\n");*/
 
@@ -441,7 +446,7 @@ e_them_t2_action2(U8 e)
 
     /*sys_printf("e_them_t2 ymove nok or ...\n");*/
     /* can't go there, or ... */
-    ent_ents[e].y = (ent_ents[e].y & 0xf8) | 0x03;  /* align to ground */
+    ent_ents[e].y = (ent_ents[e].y & ~0x07) | 0x03;  /* align to ground (32-bit mask; 0xf8 would clear bit 8) */
     ent_ents[e].offsy = 0x0100;
     if (ent_ents[e].latency != 00)
       return;
@@ -648,6 +653,10 @@ e_them_t3_action2(U8 e)
 	    ent_ents[e].n |= ENT_LETHAL;
 	  ent_ents[e].x = ent_ents[e].xsave;
 	  ent_ents[e].y = ent_ents[e].ysave;
+	  if ((ent_ents[e].n & 0x7f) == 0x4b)
+	    ent_ents[e].latency = 0x0A;  /* bullet trap reload ~2.4 s */
+	  else if ((ent_ents[e].n & 0x7f) == 0x4c)
+	    ent_ents[e].latency = 0x0A;  /* missile trap reload ~3.2 s */
 	  if (ent_ents[e].y < 0 || ent_ents[e].y > 0x140) {
 	    ent_ents[e].n = 0;
 	    return;
@@ -663,6 +672,16 @@ e_them_t3_action2(U8 e)
     else {  /* ent_ents[e].sprseq1 == 0 -- waiting */
 
       /* ugly GOTOs */
+
+      if ((ent_ents[e].n & 0x7f) == 0x4b ||
+	  (ent_ents[e].n & 0x7f) == 0x4c) {
+	/* slow-fire traps: fire immediately on wake; after each shot the
+	 * latency set at path end delays the next trigger (reload) */
+	if (ent_ents[e].latency > 0) {
+	  ent_ents[e].latency--;
+	  return;
+	}
+      }
 
       if (ent_ents[e].flags & ENT_FLG_TRIGRICK) {  /* reacts to rick */
 	/* wake up if triggered by rick */
@@ -705,11 +724,24 @@ e_them_t3_action2(U8 e)
 		* but I dont have the table yet. must rip the data off the game...
 		* FIXME is it 8 of them, not 10?
 		* FIXME testing below...
+		*
+		* trigsnd 0x00..0x13 means "no sound" (e.g. entities 0x22/0x23 on
+		* submap 12): 0x14 must be subtracted before indexing WAV_ENTITY,
+		* but a trigsnd < 0x14 wraps the U8 index to a huge value and a
+		* trigsnd > 0x1d overruns the 10-entry table. Guard the bounds or
+		* syssnd_play() dereferences a garbage pointer and crashes.
 		*/
-		syssnd_play(WAV_ENTITY[(ent_ents[e].trigsnd & 0x1F) - 0x14], 1);
+		{
+		  U8 wavix = (ent_ents[e].trigsnd & 0x1F) - 0x14;  /* wraps if < 0x14 */
+		  if (wavix < 10)  /* 0x14..0x1d only */
+		    syssnd_play(WAV_ENTITY[wavix], 1);
+		}
 		/*syssnd_play(WAV_ENTITY[0], 1);*/
 #endif
       ent_ents[e].n &= ~ENT_LETHAL;
+      if ((ent_ents[e].n & 0x7f) == 0x4b ||
+	  (ent_ents[e].n & 0x7f) == 0x4c)
+	ent_ents[e].latency = 0;  /* fire immediately on wake */
       if (ent_ents[e].flags & ENT_FLG_LETHALI)
 	ent_ents[e].n |= ENT_LETHAL;
       ent_ents[e].sproffs = 1;

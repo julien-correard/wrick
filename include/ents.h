@@ -19,7 +19,7 @@
 
 #define ENT_XRICK ent_ents[1]
 
-#define ENT_NBR_ENTDATA 0x4b
+#define ENT_NBR_ENTDATA 0x4d
 #define ENT_NBR_SPRSEQ 0xac
 #define ENT_NBR_MVSTEP 0x315
 
@@ -106,7 +106,7 @@ extern void ent_reset(void);
 extern void ent_actvis(U8, U8);
 extern void ent_draw(void);
 extern void ent_snap(void);
-extern void ent_draw_interp(U32);
+extern void ent_draw_interp(U32, S16);
 extern void ent_clprev(void);
 extern void ent_action(void);
 
