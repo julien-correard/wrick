@@ -385,10 +385,11 @@ draw_sprite2(U8 number, U16 x, U16 y, U8 front)
     return;
 
   g = 0;
+  if (y0 > y) g = (S16)(y0 - y) << 2;
   draw_setfb(x0 - DRAW_XYMAP_SCRLEFT, y0 - DRAW_XYMAP_SCRTOP + 8);
 
   for (r = 0; r < 0x15; r++) {
-    if (r >= h || y + r < y0) continue;
+    if (y + r < y0 || y + r >= y0 + h) continue;
 
     i = 0x1f;
     im = x - (x & 0xfff8);

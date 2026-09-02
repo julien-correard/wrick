@@ -273,7 +273,7 @@ ent_actvis(U8 frow, U8 lrow)
     ent_ents[e].trig_x = map_marks[m].lt & 0xf8;
     ent_ents[e].latency = (map_marks[m].lt & 0x07) << 5;  /* <<5 eq *32 */
 
-    if (ent_ents[e].n == 0x4b || ent_ents[e].n == 0x4c)
+    if ((ent_ents[e].n & 0x7f) == 0x4b || (ent_ents[e].n & 0x7f) == 0x4c)
       ent_ents[e].latency = 0;  /* slow-fire traps: latency is the post-shot reload only */
 
     /* Pre-consume the wake-up latency of enemies (e_them types) that are
