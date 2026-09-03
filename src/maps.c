@@ -41,25 +41,20 @@
 /*
  * global vars
  */
-U8 map_map[0x2C][0x20];
-U8 map_eflg[0x100];
+U16 map_map[0x2C][0x20];
 U8 map_frow;
-U8 map_tilesBank;
 
 
 /*
- * prototypes
- */
-static void map_eflg_expand(U8);
-
-
-/*
- * Fill in map_map with tile numbers by expanding blocks.
+ * Fill in map_map with ABSOLUTE tile numbers by expanding blocks.
  *
  * add map_submaps[].bnum to map_frow to find out where to start from.
  * We need to /4 map_frow to convert from tile rows to block rows, then
  * we need to *8 to convert from block rows to block numbers (there
  * are 8 blocks per block row). This is achieved by *2 then &0xfff8.
+ *
+ * RUxF: map_bnums[pbnum] is a U16 BLOCK number (0-1023) into the unified
+ * block space; each of its 16 cells is an absolute tile index 0-1023.
  */
 void
 map_expand(void)
@@ -99,34 +94,12 @@ map_init(void)
   /*sys_printf("xrick/map_init: map=%#04x submap=%#04x\n", g_map, game_submap);*/
 #ifdef GFXPC
   draw_filter = 0xffff;
-  map_tilesBank = (map_submaps[game_submap].page == 1) ? 3 : 2;
 #endif
-#ifdef GFXST
-  map_tilesBank = (map_submaps[game_submap].page == 1) ? 2 : 1;
-#endif
-  map_eflg_expand((map_submaps[game_submap].page == 1) ? 0x10 : 0x00);
   map_expand();
   ent_reset();
   ent_actvis(map_frow + MAP_ROW_SCRTOP, map_frow + MAP_ROW_SCRBOT);
   ent_actvis(map_frow + MAP_ROW_HTTOP, map_frow + MAP_ROW_HTBOT);
   ent_actvis(map_frow + MAP_ROW_HBTOP, map_frow + MAP_ROW_HBBOT);
-}
-
-
-/*
- * Expand entity flags for this map
- *
- * ASM 1117
- */
-void
-map_eflg_expand(U8 offs)
-{
-  U8 i, j, k;
-
-  for (i = 0, k = 0; i < 0x10; i++) {
-    j = map_eflg_c[offs + i++];
-    while (j--) map_eflg[k++] = map_eflg_c[offs + i];
-  }
 }
 
 

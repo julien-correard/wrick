@@ -241,9 +241,23 @@ draw_tilesSubList()
  * fb: CHANGED (see above)
  */
 void
-draw_tile(U8 tileNumber)
+draw_tile(U16 tileNumber)
 {
   U8 i, k, *f;
+  U8 bank;
+  U16 idx;
+
+  if (draw_tilesBank == TILES_BANK_FONT) {
+    /* Font / UI path: bank 0, index is the raw (U8) tile-list value. */
+    bank = TILES_BANK_FONT;
+    idx = tileNumber;
+  }
+  else {
+    /* Game path: tileNumber is an ABSOLUTE tile index 0-1023. Bank is
+     * draw_tilesBank (== TILES_BANK_GAME) plus the high bits of the index. */
+    bank = draw_tilesBank + ((tileNumber >> 8) & (TILES_GAME_BANKS - 1));
+    idx = tileNumber & 0xFF;
+  }
 
 #ifdef GFXPC
   U16 x;
@@ -257,7 +271,7 @@ draw_tile(U8 tileNumber)
   for (i = 0; i < 8; i++) {  /* for all 8 pixel lines */
 
 #ifdef GFXPC
-    x = tiles_data[draw_tilesBank][tileNumber][i] & draw_filter;
+    x = tiles_data[bank][idx][i] & draw_filter;
     /*
      * tiles / perform the transformation from CGA 2 bits
      * per pixel to frame buffer 8 bits per pixels
@@ -268,7 +282,7 @@ draw_tile(U8 tileNumber)
 #endif
 
 #ifdef GFXST
-  x = tiles_data[draw_tilesBank][tileNumber][i];
+  x = tiles_data[bank][idx][i];
   /*
    * tiles / perform the transformation from ST 4 bits
    * per pixel to frame buffer 8 bits per pixels
@@ -566,7 +580,7 @@ draw_map(void)
 {
   U8 i, j;
 
-  draw_tilesBank = map_tilesBank;
+  draw_tilesBank = TILES_BANK_GAME;
 
   for (i = 0; i < 0x18; i++) {  /* 0x18 rows */
 #ifdef GFXPC
@@ -592,7 +606,7 @@ draw_mapBufFill(void)
   U8 i, j;
   U8 *save;
 
-  draw_tilesBank = map_tilesBank;
+  draw_tilesBank = TILES_BANK_GAME;
 
   save = fb_base;
   fb_base = (U8 *)draw_mapbuf;
@@ -709,7 +723,7 @@ draw_clearStatus(void)
   U8 i;
 
 #ifdef GFXPC
-  draw_tilesBank = map_tilesBank;
+  draw_tilesBank = TILES_BANK_GAME;
 #endif
 #ifdef GFXST
   draw_tilesBank = 0;

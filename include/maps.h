@@ -20,9 +20,9 @@
 #define MAP_NBR_SUBMAPS 0x2F
 #define MAP_NBR_CONNECT 0x99
 #define MAP_NBR_BNUMS 0x1FD8
-#define MAP_NBR_BLOCKS 0x0100
+#define MAP_NBR_BLOCKS 0x0400
 #define MAP_NBR_MARKS 0x020B
-#define MAP_NBR_EFLGC 0x0020
+#define MAP_NBR_TILES 0x0400
 
 /*
  * map row definitions, for three zones : hidden top, screen, hidden bottom
@@ -36,7 +36,7 @@
 #define MAP_ROW_HBTOP 0x20
 #define MAP_ROW_HBBOT 0x27
 
-extern U8 map_map[0x2c][0x20];
+extern U16 map_map[0x2c][0x20];
 
 /*
  * main maps
@@ -75,9 +75,10 @@ typedef struct {
 extern connect_t map_connect[MAP_NBR_CONNECT];
 
 /*
- * blocks - one block is 4 by 4 tiles.
+ * blocks - one block is 4 by 4 tiles. RUxF: each cell holds an ABSOLUTE
+ * tile index (0-1023) into the unified tile space (banks 1-4).
  */
-typedef U8 block_t[0x10];
+typedef U16 block_t[0x10];
 
 extern block_t map_blocks[MAP_NBR_BLOCKS];
 
@@ -102,9 +103,10 @@ typedef struct {
 extern mark_t map_marks[MAP_NBR_MARKS];
 
 /*
- * block numbers, i.e. array of rows of 8 blocks
+ * block numbers, i.e. array of rows of 8 blocks. RUxF: each entry is a
+ * U16 BLOCK number (0-1023) into the unified 1024-block space.
  */
-extern U8 map_bnums[MAP_NBR_BNUMS];
+extern U16 map_bnums[MAP_NBR_BNUMS];
 
 /*
  * flags for map_eflg[map_map[row][col]]  ("yes" when set)
@@ -127,18 +129,12 @@ extern U8 map_bnums[MAP_NBR_BNUMS];
 #define MAP_EFLG_CLIMB (0x02)
 #define MAP_EFLG_01 (0x01)
 
-extern U8 map_eflg_c[MAP_NBR_EFLGC];  /* compressed */
-extern U8 map_eflg[0x100];  /* current */
+extern U8 map_eflg[MAP_NBR_TILES];  /* full unified hazard flags, indexed by absolute tile 0-1023 */
 
 /*
  * map_map top row within the submap
  */
 extern U8 map_frow;
-
-/*
- * tiles offset
- */
-extern U8 map_tilesBank;
 
 extern void map_expand(void);
 extern void map_init(void);

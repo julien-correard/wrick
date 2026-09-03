@@ -10,10 +10,11 @@ OBJDIR  := $(BUILD)/obj
 SRCDIR  := src
 
 CC      := gcc
-CFLAGS  := -O2 -Wall -Iinclude -MMD -MP $(shell sdl-config --cflags)
+CFLAGS  := -O0 -g -Wall -Iinclude -MMD -MP $(shell sdl-config --cflags)
 LDFLAGS := $(shell sdl-config --libs) -lz
 
-SOURCES := $(wildcard $(SRCDIR)/*.c)
+SOURCES := $(filter-out $(SRCDIR)/dat_maps.c $(SRCDIR)/dat_tilesPC.c $(SRCDIR)/dat_tilesST.c $(SRCDIR)/dat_spritesPC.c $(SRCDIR)/dat_spritesST.c, $(wildcard $(SRCDIR)/*.c))
+SOURCES += $(SRCDIR)/game_ruxf.c
 OBJECTS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 DEPS    := $(OBJECTS:.o=.d)
 

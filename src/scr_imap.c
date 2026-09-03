@@ -63,7 +63,7 @@ screen_introMap(void)
     sysvid_clear();
 
 #ifdef GFXPC
-    draw_tilesBank = 1;
+    draw_tilesBank = TILES_BANK_FONT;
     draw_filter = 0xAAAA;
 #endif
 #ifdef GFXST

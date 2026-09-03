@@ -94,7 +94,8 @@ e_rick_lethalpix(S16 x, S16 y, U8 crawl)
 {
 	S16 x0, x1, y0, y1;
 	S16 tx, ty, px, py;
-	U8 tile;
+	U8 tileBank;
+	U16 tile, tileOff;
 	U32 row;
 
 	/* rick hitbox (matches e_rick_boxtest) */
@@ -109,9 +110,11 @@ e_rick_lethalpix(S16 x, S16 y, U8 crawl)
 			if (tx < 0 || tx >= 0x20) continue;
 			tile = map_map[ty][tx];
 			if (!(map_eflg[tile] & MAP_EFLG_LETHAL)) continue;
+			tileBank = TILES_BANK_GAME + ((tile >> 8) & (TILES_GAME_BANKS - 1));
+			tileOff = tile & 0xFF;
 			for (py = 0; py < 8; py++) {
 				if ((ty << 3) + py < y0 || (ty << 3) + py > y1) continue;
-				row = tiles_data[map_tilesBank][tile][py];
+				row = tiles_data[tileBank][tileOff][py];
 				for (px = 0; px < 8; px++) {
 					if ((tx << 3) + px < x0 || (tx << 3) + px > x1) continue;
 					/* ST encoding: rightmost pixel = low nibble (see draw_tile) */

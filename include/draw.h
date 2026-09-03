@@ -38,7 +38,7 @@ extern U8 draw_clipms(S16 *, S16 *, U16 *, U16 *);
 extern void draw_tilesList(void);
 extern void draw_tilesListImm(U8 *);
 extern U8 draw_tilesSubList(void);
-extern void draw_tile(register U8);
+extern void draw_tile(register U16);
 extern void draw_sprite(U8, U16, U16);
 extern void draw_sprite2(U8, U16, U16, U8);
 extern void draw_spriteBackground(U16, U16);

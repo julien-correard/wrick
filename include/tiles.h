@@ -32,11 +32,25 @@
 #include "system.h"
 
 #ifdef GFXPC
-#define TILES_NBR_BANKS 4
+#define TILES_NBR_BANKS 5
 #endif
 #ifdef GFXST
-#define TILES_NBR_BANKS 3
+#define TILES_NBR_BANKS 5
 #endif
+
+/*
+ * RUxF unified tile model:
+ *   bank 0        -- font / cutscene decor (indices < 256, used by all
+ *                    UI/screenshot rendering; a U8 tile-list index).
+ *   banks 1..4    -- four game-tile pages (1024 tiles total). A block cell
+ *                    holds an ABSOLUTE tile index `u` in 0-1023; the real
+ *                    bank and in-bank offset are derived at draw time with
+ *                    game_bank(u) = 1 + (u >> 8), game_off(u) = u & 0xFF.
+ *                    There is NO active-tile-page indirection anymore.
+ */
+#define TILES_BANK_FONT 0
+#define TILES_BANK_GAME 1   /* base bank for the absolute-index mapping */
+#define TILES_GAME_BANKS 4
 
 #define TILES_SIZEOF8 (0x10)
 #define TILES_SIZEOF16 (0x08)

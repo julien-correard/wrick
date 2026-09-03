@@ -166,9 +166,9 @@ devtools_run(void)
     sprintf(s, "BLOCKS@%#04X@TO@%#04X@WITH@BANK@%d\376",
 	    pos, pos + 4*8-1, pos2);
     draw_setfb(4, 4);
-    draw_tilesBank = 0;
+    draw_tilesBank = TILES_BANK_FONT;
     draw_tilesListImm(s);
-    draw_tilesBank = pos2;
+    draw_tilesBank = TILES_BANK_GAME;
     for (l = 0; l < 8; l++)
       for (k = 0; k < 4; k++)
 	for (i = 0; i < 4; i++)

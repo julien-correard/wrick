@@ -29,6 +29,7 @@
 #include "rects.h"
 #include "maps.h"
 #include "draw.h"
+#include "tiles.h"
 
 /*
  * global vars
@@ -359,7 +360,7 @@ ent_draw(void)
 #endif
   S16 dx, dy;
 
-  draw_tilesBank = map_tilesBank;
+  draw_tilesBank = TILES_BANK_GAME;
 
   /* reset rectangles list */
   rects_free(ent_rects);
@@ -525,7 +526,7 @@ ent_draw_interp(U32 a16, S16 off)
   U8 i;
   S16 xi, yi, dx, dy;
 
-  draw_tilesBank = map_tilesBank;
+  draw_tilesBank = TILES_BANK_GAME;
 
   if (a16 > 65536)
     a16 = 65536;
