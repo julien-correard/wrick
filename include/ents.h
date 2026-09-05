@@ -19,7 +19,7 @@
 
 #define ENT_XRICK ent_ents[1]
 
-#define ENT_NBR_ENTDATA 0x4d
+#define ENT_NBR_ENTDATA 0x4e
 #define ENT_NBR_SPRSEQ 0xac
 #define ENT_NBR_MVSTEP 0x315
 

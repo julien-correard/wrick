@@ -1,0 +1,36 @@
+RuxF - Spec de l'editeur de niveau (systeme de connexion)
+=========================================================
+
+CONNECTEUR
+----------
+Un par sortie gauche/droite d'un submap. 4 champs :
+   { dir, submap, rowin, colin }
+
+| champ  | type | signification                                          |
+|--------|------|-------------------------------------------------------|
+| dir    | U8   | direction de sortie du submap courant : 0x00=left, 0x01=right |
+| submap | U8   | submap de destination (0xff = sortie de map -> map suivante) |
+| rowin  | U16  | rangee tile d'arrivee (y) dans le submap destination. Rick arrive ici exactement. |
+| colin  | U8   | colonne tile d'arrivee (x) dans le submap destination, 0..31 |
+
+REGLES
+------
+- Les connecteurs d'un submap sont une liste consecutive pointee par
+  submap_t.connect. Ils doivent etre groupes par dir (le moteur prend le
+  1er dir correspondant a la sortie). Un marqueur de fin
+  {0xff, 0x00, 0x00, 0x00} clot la liste.
+- colin : 0..31 (perso large ~3 tiles). Sortie gauche -> petite col (0-3),
+  sortie droite -> grande col (28-31), mais libre.
+- La hauteur de Rick (son y pixel) est conservee telle quelle : un saut en
+  cours reste en hauteur. Seuls l'ancrage au tile row (rowin) et la colonne
+  (colin) sont imposes.
+
+UNITES
+------
+- rowin / row / map_frow sont des RANGEES DE TILES (pas des pixels).
+
+LIMITE PROFONDEUR ENTITES (a noter)
+-----------------------------------
+- mark_t.row et ent_actvis restent en U8 (max rangee 255).
+  L'arrivee de Rick fonctionne a des rows > 255, mais les ennemis/items
+  (map_marks) ne sont adressables qu'aux rangees < 256.

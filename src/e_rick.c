@@ -65,6 +65,11 @@ e_rick_boxtest(U8 e)
 	 * entity: x to x+w, y to y+h
 	 */
 
+	/* RUxF: no pickup while dying -- rick is falling/out of screen
+	 * (zombie state), or dead; he collects again once respawned. */
+	if (E_RICK_STTST(E_RICK_STZOMBIE | E_RICK_STDEAD))
+		return FALSE;
+
 	if (E_RICK_ENT.x + 0x11 < ent_ents[e].x ||
 		E_RICK_ENT.x + 0x05 > ent_ents[e].x + ent_ents[e].w ||
 		E_RICK_ENT.y + 0x14 < ent_ents[e].y ||

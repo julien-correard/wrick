@@ -26,6 +26,7 @@
 #include "e_bonus.h"
 #include "e_box.h"
 #include "e_sbonus.h"
+#include "e_lifebonus.h"
 #include "rects.h"
 #include "maps.h"
 #include "draw.h"
@@ -614,6 +615,8 @@ ent_action(void)
       k = ent_ents[i].n & 0x7f;
       if (k == 0x47)
 	e_them_z_action(i);
+      else if (k == 0x4d)
+	e_lifebonus_action(i);
       else if (k >= 0x18)
         e_them_t3_action(i);
       else

@@ -121,7 +121,7 @@ sound_t *WAV_ENTITY[10];
 /*
  * local vars
  */
-static U8 isave_frow;
+static U16 isave_frow;
 static game_state_t game_state;
 #ifdef ENABLE_SOUND
 static sound_t *music_snd;
@@ -540,7 +540,7 @@ frame(void)
 	else {  /* initialize game */
 	  ent_ents[1].x = map_maps[game_map].x;
 	  ent_ents[1].y = map_maps[game_map].y;
-	  map_frow = (U8)map_maps[game_map].row;
+	  map_frow = map_maps[game_map].row;
 	  game_submap = map_maps[game_map].submap;
 	  game_state = CHAIN_END;
 	}
@@ -554,6 +554,7 @@ frame(void)
 
 
     case CHAIN_END:
+      map_resetMarks();               /* respawn entities (RUxF back-and-forth) */
       map_init();                     /* initialize the map */
       isave();                        /* save data in case of a restart */
       ent_clprev();                   /* cleanup entities */
@@ -653,7 +654,7 @@ init(void)
 
   if (sysarg_args_submap == 0) {
     game_submap = map_maps[game_map].submap;
-    map_frow = (U8)map_maps[game_map].row;
+    map_frow = map_maps[game_map].row;
   }
   else {
     /* dirty hack to determine frow */
@@ -663,7 +664,9 @@ init(void)
 	   (map_connect[i].submap != game_submap ||
 	    map_connect[i].dir != RIGHT))
       i++;
-    map_frow = map_connect[i].rowin - 0x10;
+    /* rowin is an ABSOLUTE tile row; map_frow is relative (map_expand adds
+     * map_submaps[].bnum), so subtract the destination's base (bnum/2). */
+    map_frow = map_connect[i].rowin - 0x10 - (map_submaps[game_submap].bnum >> 1);
     ent_ents[1].y = 0x10 << 3;
   }
 

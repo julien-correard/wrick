@@ -47,7 +47,7 @@ extern sprite_t sprites_data[SPRITES_NBR_SPRITES];
 
 #ifdef GFXST
 
-#define SPRITES_NBR_SPRITES (0xD5)
+#define SPRITES_NBR_SPRITES (0xD6)
 
 typedef U32 sprite_t[0x54];  /* 0x15 per 0x04 */
 

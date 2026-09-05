@@ -66,10 +66,13 @@ extern submap_t map_submaps[MAP_NBR_SUBMAPS];
  * connections
  */
 typedef struct {
-  U8 dir;
-  U8 rowout;
-  U8 submap;
-  U8 rowin;
+  U8 dir;      /* exit direction (LEFT/RIGHT)                          */
+  U8 submap;   /* destination submap                                    */
+  U8 colin;    /* arrival tile column (x) on the destination submap     */
+  U8 pad;      /* (unused - alignment)                                  */
+  U16 rowout;  /* exit tile row (y) on THIS submap, absolute; selects   */
+               /* this connector when Rick is at (or just above) it     */
+  U16 rowin;   /* arrival tile row (y) on the destination submap        */
 } connect_t;
 
 extern connect_t map_connect[MAP_NBR_CONNECT];
@@ -134,7 +137,7 @@ extern U8 map_eflg[MAP_NBR_TILES];  /* full unified hazard flags, indexed by abs
 /*
  * map_map top row within the submap
  */
-extern U8 map_frow;
+extern U16 map_frow;
 
 extern void map_expand(void);
 extern void map_init(void);

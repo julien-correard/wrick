@@ -34,6 +34,7 @@
 #include "debug.h"
 
 #include "ents.h"
+#include "e_rick.h"
 #include "draw.h"
 #include "screens.h"
 #include "e_sbonus.h"
@@ -42,7 +43,7 @@
  * global vars
  */
 U16 map_map[0x2C][0x20];
-U8 map_frow;
+U16 map_frow;
 
 
 /*
@@ -112,14 +113,13 @@ map_init(void)
 U8
 map_chain(void)
 {
-  U16 c, t;
+  U16 c;
 
   game_chsm = 0;
   e_sbonus_counting = FALSE;
 
   /* find connection */
   c = map_submaps[game_submap].connect;
-  t = 3;
 
   IFDEBUG_MAPS(
     sys_printf("xrick/maps: chain submap=%#04x frow=%#04x .connect=%#04x %s\n",
@@ -128,23 +128,38 @@ map_chain(void)
   );
 
   /*
-   * look for the first connector with compatible row number. if none
-   * found, then panic
+   * look for the connector matching the exit direction, choosing by Rick's
+   * current tile row (bracketing): pick the first connector (of the matching
+   * direction) whose rowout (ABSOLUTE tile row on this submap) is >= Rick's
+   * current absolute tile row. If all of them are above Rick, fall back to
+   * the last one. This lets a single submap have several exits on the same
+   * edge, one per height. If no connector of that direction exists, panic.
+   *
+   * map_frow is RELATIVE to this submap (map_expand adds map_submaps[].bnum
+   * to it), so Rick's absolute tile row is:
+   *     submap.bnum/2 + map_frow + (E_RICK_ENT.y >> 3)
    */
-  for (c = map_submaps[game_submap].connect; ; c++) {
-    if (map_connect[c].dir == 0xff)
+  {
+    U16 first = 0xffff, last = 0xffff;
+    U16 rickAbs = (map_submaps[game_submap].bnum >> 1) + map_frow + (E_RICK_ENT.y >> 3);
+    for (c = map_submaps[game_submap].connect; ; c++) {
+      if (map_connect[c].dir == 0xff) break;
+      if (map_connect[c].dir != game_dir) continue;
+      last = c;
+      if (first == 0xffff) first = c;
+      if (map_connect[c].rowout >= rickAbs) break;
+    }
+    if (first == 0xffff)
       sys_panic("(map_chain) can not find connector\n");
-    if (map_connect[c].dir != game_dir) continue;
-    t = (ent_ents[1].y >> 3) + map_frow - map_connect[c].rowout;
-    if (t < 3) break;
+    c = (map_connect[c].dir == 0xff) ? last : c;
   }
 
   /* got it */
   IFDEBUG_MAPS(
     sys_printf("xrick/maps: chain frow=%#04x y=%#06x\n",
 	       map_frow, ent_ents[1].y);
-    sys_printf("xrick/maps: chain connect=%#04x rowout=%#04x - ",
-	       c, map_connect[c].rowout);
+    sys_printf("xrick/maps: chain connect=%#04x - ",
+	       c);
     );
 
   if (map_connect[c].submap == 0xff) {
@@ -155,18 +170,43 @@ map_chain(void)
     return FALSE;
   }
   else  {
-    /* next submap */
-    IFDEBUG_MAPS(
-      sys_printf("chain to submap=%#04x rowin=%#04x\n",
-		 map_connect[c].submap, map_connect[c].rowin);
-      );
-    map_frow = map_frow - map_connect[c].rowout + map_connect[c].rowin;
-    game_submap = map_connect[c].submap;
-    IFDEBUG_MAPS(
-      sys_printf("xrick/maps: chain frow=%#04x\n",
-		 map_frow);
-      );
-    return TRUE;
+    /* next submap: teleport to the exact arrival (row,col) on the
+     * destination submap. Keep E_RICK_ENT.y as close as possible so a
+     * mid-jump keeps its height.
+     *
+     * rowin is an ABSOLUTE tile row on the destination, but map_frow is
+     * RELATIVE: map_expand reads from submap.bnum + map_frow, and the
+     * destination submap's own data starts at submap.bnum/2 (tile rows).
+     * So we subtract the destination's base (bnum/2) to make Rick land at
+     * exactly `rowin` absolute:
+     *     map_frow = rowin - (E_RICK_ENT.y >> 3) - dest.bnum/2
+     *
+     * map_expand only honors map_frow values that are a multiple of 4
+     * ((2 * map_frow) & 0xfff8 rounds down to a block row), while entities
+     * are positioned using the exact value. A non-multiple-of-4 map_frow
+     * would therefore draw entities up to 3 tile rows higher than the map.
+     * So round map_frow DOWN to a multiple of 4 and push Rick down by the
+     * same amount (a << 3 pixels): he still lands at exactly `rowin`.
+     */
+    {
+      U16 destBase = map_submaps[map_connect[c].submap].bnum >> 1;
+      U16 raw = map_connect[c].rowin - (E_RICK_ENT.y >> 3) - destBase;
+      U16 a = raw & 3;
+      IFDEBUG_MAPS(
+	sys_printf("chain to submap=%#04x rowin=%#04x base=%#04x\n",
+		   map_connect[c].submap, map_connect[c].rowin, destBase);
+	);
+      game_submap = map_connect[c].submap;
+      E_RICK_ENT.x = (U16)map_connect[c].colin * 8;
+      E_RICK_ENT.y += a << 3;
+      map_frow = raw - a;
+
+      IFDEBUG_MAPS(
+	sys_printf("xrick/maps: chain frow=%#04x\n",
+		   map_frow);
+	);
+      return TRUE;
+    }
   }
 }
 
